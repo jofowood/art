@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artwork Catalog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            color: #222;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .artwork-card {
+            background: white;
+            border-radius: 2px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: box-shadow 0.2s;
+        }
+        
+        .artwork-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .artwork-image {
+            width: 100%;
+            max-height: 300px;
+            min-height: 200px;
+            background: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .artwork-image img {
+            max-width: 300px;
+            max-height: 300px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        
+        .artwork-info {
+            padding: 20px;
+        }
+        
+        .artwork-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #222;
+        }
+        
+        .artwork-meta {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .artwork-meta div {
+            margin-bottom: 4px;
+        }
+        
+        .inv-number {
+            font-family: monospace;
+            color: #999;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        
+        .price {
+            margin-top: 8px;
+            font-weight: 600;
+            color: #222;
+        }
+        
+        .inquire-btn {
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            background: #888;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .inquire-btn:hover {
+            background: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="status" class="loading">Loading catalog...</div>
+        <div id="catalog" class="grid"></div>
+    </div>
+
+    <script>
+        const API_TOKEN = '15d2c34c1ab2c226a629c1dcb9c9e02cffec1376';
+        const SERVER_URL = 'https://cloud.seatable.io';
+        
+        let baseToken = null;
+        let baseUUID = null;
+        
+        // Lookup tables for select fields
+        const STATUS_MAP = {
+            '420198': 'In Process',
+            '900687': 'In Production',
+            '311037': 'Available',
+            '788492': 'Sketch',
+            '664740': 'Sold'
+        };
+        
+        const LOCATION_MAP = {
+            '635959': 'Studio',
+            '766953': 'Storage',
+            '138844': 'Showing',
+            '696930': 'Private Collection',
+            '553126': 'In Process'
+        };
+        
+        const EDITIONS_MAP = {
+            '465421': 'Unique Piece',
+            '47020': 'Edition',
+            '881410': 'AP'
+        };
+        
+        const FRAME_MAP = {
+            '758117': 'Unframed',
+            '770139': 'White Studio Frame',
+            '739238': 'Black Studio Frame',
+            '243827': 'Dark Studio Frame',
+            '766220': 'Light Studio Frame',
+            '386865': 'Custom Frame',
+            '145290': 'N/A'
+        };
+        
+        async function getBaseToken() {
+            const response = await fetch(`${SERVER_URL}/api/v2.1/dtable/app-access-token/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${API_TOKEN}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to get base token: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            baseToken = data.access_token;
+            baseUUID = data.dtable_uuid;
+            
+            return data;
+        }
+        
+        async function getTableRows(tableName) {
+            const response = await fetch(
+                `${SERVER_URL}/api-gateway/api/v2/dtables/${baseUUID}/rows/?table_name=${encodeURIComponent(tableName)}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${baseToken}`
+                    }
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error(`Failed to get rows: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.rows;
+        }
+        
+        function displayArtworks(rows) {
+            const catalog = document.getElementById('catalog');
+            const status = document.getElementById('status');
+            
+            if (!rows || rows.length === 0) {
+                status.innerHTML = '<div class="error">No artworks found in the Works & Exhibits table.</div>';
+                return;
+            }
+            
+            status.style.display = 'none';
+            
+            // Filter out archived items
+            const activeRows = rows.filter(row => !row.V6xL); // V6xL is "To archive" checkbox
+            
+            activeRows.forEach(row => {
+                const card = document.createElement('div');
+                card.className = 'artwork-card';
+                
+                // Extract data using actual column IDs
+                const inventoryNum = row['0000'] || '';
+                const title = row.gScu || 'Untitled';
+                const collection = row.z350 || '';
+                const date = row['4UG7'] || '';
+                const medium = row.Xe9e || '';
+                const editionDesc = row['3y0u'] || '';
+                const currentSeq = row.rXGj || '';
+                const imageSize = row.gWXH || '';
+                const paperSize = row['2Te2'] || '';
+                const frameSize = row['6Ci3'] || '';
+                const price = row.upE4 ? `$${row.upE4}` : '';
+                
+                // Decode select fields
+                const status = STATUS_MAP[row.I6sx] || '';
+                const location = LOCATION_MAP[row.N1Mq] || '';
+                const editionType = EDITIONS_MAP[row.pLo6] || '';
+                const frameType = FRAME_MAP[row.OC3R] || '';
+                
+                // Get images
+                const thumbnail = row.Jcpv && row.Jcpv.length > 0 ? row.Jcpv[0] : null;
+                
+                let imageHTML = '';
+                if (thumbnail) {
+                    imageHTML = `<div class="artwork-image"><img src="${thumbnail}" alt="${title}"></div>`;
+                } else {
+                    imageHTML = `<div class="artwork-image"></div>`;
+                }
+                
+                // Build metadata display
+                let metaHTML = '';
+                if (inventoryNum) metaHTML += `<div class="inv-number">${inventoryNum}</div>`;
+                if (collection) metaHTML += `<div><strong>Series:</strong> ${collection}</div>`;
+                if (date) metaHTML += `<div><strong>Year:</strong> ${date}</div>`;
+                if (currentSeq) metaHTML += `<div><strong>Edition:</strong> ${currentSeq}</div>`;
+                if (imageSize) metaHTML += `<div><strong>Image:</strong> ${imageSize}"</div>`;
+                if (paperSize) metaHTML += `<div><strong>Paper:</strong> ${paperSize}"</div>`;
+                if (frameType && frameType !== 'N/A') metaHTML += `<div><strong>Frame:</strong> ${frameType}</div>`;
+                if (editionDesc) metaHTML += `<div style="margin-top: 10px; font-size: 0.85rem; line-height: 1.5;">${editionDesc}</div>`;
+                if (status) metaHTML += `<div><strong>Status:</strong> ${status}</div>`;
+                if (price && status !== 'Sold') metaHTML += `<div class="price">${price}</div>`;
+                
+                // Build email body
+                let emailBody = `I'm interested in the following artwork:\n\n`;
+                emailBody += `Title: ${title}\n`;
+                if (inventoryNum) emailBody += `Inventory: ${inventoryNum}\n`;
+                if (collection) emailBody += `Series: ${collection}\n`;
+                if (date) emailBody += `Year: ${date}\n`;
+                if (currentSeq) emailBody += `Edition: ${currentSeq}\n`;
+                if (imageSize) emailBody += `Image Size: ${imageSize}"\n`;
+                if (paperSize) emailBody += `Paper Size: ${paperSize}"\n`;
+                if (frameSize) emailBody += `Frame Size: ${frameSize}"\n`;
+                if (frameType && frameType !== 'N/A') emailBody += `Frame: ${frameType}\n`;
+                if (editionDesc) emailBody += `\nDetails: ${editionDesc}\n`;
+                if (medium) emailBody += `Medium: ${medium}\n`;
+                if (status) emailBody += `Status: ${status}\n`;
+                if (location) emailBody += `Location: ${location}\n`;
+                if (price && status !== 'Sold') emailBody += `Price: ${price}\n`;
+                
+                const emailSubject = `Inquiry: ${title}${inventoryNum ? ' (' + inventoryNum + ')' : ''}`;
+                const mailtoLink = `mailto:jofowood@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+                
+                card.innerHTML = `
+                    ${imageHTML}
+                    <div class="artwork-info">
+                        <div class="artwork-title">${title}</div>
+                        <div class="artwork-meta">
+                            ${metaHTML}
+                        </div>
+                        <a href="${mailtoLink}" class="inquire-btn">Inquire</a>
+                    </div>
+                `;
+                
+                catalog.appendChild(card);
+            });
+            
+            // Update status to show count
+            status.innerHTML = `<div style="color: #666; margin-bottom: 20px;">Showing ${activeRows.length} artworks</div>`;
+            status.style.display = 'block';
+        }
+        
+        function showError(message) {
+            const status = document.getElementById('status');
+            status.innerHTML = `<div class="error">Error: ${message}<br><br>Please check the console for details.</div>`;
+        }
+        
+        async function loadCatalog() {
+            try {
+                await getBaseToken();
+                const rows = await getTableRows('Works & Exhibits');
+                displayArtworks(rows);
+            } catch (error) {
+                console.error('Error loading catalog:', error);
+                showError(error.message);
+            }
+        }
+        
+        // Load catalog when page loads
+        loadCatalog();
+    </script>
+</body>
+</html>
