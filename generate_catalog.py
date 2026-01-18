@@ -328,9 +328,8 @@ def main():
         return
     print(f"   ✓ Image column: {image_column}")
     
-    # Get metadata columns (non-image columns to display)
-    all_columns = [col for col in table["columns"] 
-                       if col["type"] not in ["image", "file", "long-text")]
+    # Get all columns for display
+    all_columns = table["columns"]
     
     # Get rows
     print(f"\n3. Loading rows from view: {VIEW_NAME}...")
