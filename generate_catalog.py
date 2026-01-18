@@ -39,7 +39,7 @@ def get_base_token(api_token):
 def get_metadata(base_token, base_uuid):
     """Get base metadata including tables and columns"""
     response = requests.get(
-        f"{SERVER_URL}/dtable-server/api/v1/dtables/{base_uuid}/metadata/",
+        f"{SERVER_URL}/api-gateway/api/v2/dtables/{base_uuid}/metadata/",
         headers={"Authorization": f"Bearer {base_token}"}
     )
     response.raise_for_status()
@@ -48,7 +48,7 @@ def get_metadata(base_token, base_uuid):
 
 def get_rows(base_token, base_uuid, table_name, view_name=None):
     """Get all rows from a table/view"""
-    url = f"{SERVER_URL}/dtable-server/api/v1/dtables/{base_uuid}/rows/"
+    url = f"{SERVER_URL}/api-gateway/api/v2/dtables/{base_uuid}/rows/"
     params = {"table_name": table_name}
     if view_name:
         params["view_name"] = view_name
@@ -118,9 +118,16 @@ def download_image(image_url, api_token, output_path):
 
 def find_image_column(columns):
     """Find the first image column in the table"""
+    # First, try to find by column key (from the HTML we know it's 'Jcpv')
     for col in columns:
-        if col["type"] == "image":
-            return col["name"]
+        if col.get("key") == "Jcpv":
+            return col.get("key")
+    
+    # Fallback: find any image column
+    for col in columns:
+        if col.get("type") == "image":
+            return col.get("key") or col.get("name")
+    
     return None
 
 
@@ -243,29 +250,12 @@ def generate_html(rows, image_column, columns):
         image_url = images[0] if isinstance(images, list) else images
         image_filename = get_image_filename(image_url)
         
-        # Extract common fields (using flexible name matching)
-        title = None
-        inventory = None
-        series = None
-        year = None
-        edition = None
-        
-        for key, value in row.items():
-            if value:
-                key_lower = key.lower()
-                if 'title' in key_lower or 'name' in key_lower:
-                    title = value
-                elif 'inventory' in key_lower or 'inv' in key_lower:
-                    inventory = value
-                elif 'collection' in key_lower or 'series' in key_lower:
-                    series = value
-                elif 'year' in key_lower or 'date' in key_lower:
-                    # Extract year from date if needed
-                    year = str(value).split('-')[0] if '-' in str(value) else value
-                elif 'edition' in key_lower and 'desc' not in key_lower:
-                    edition = value
-        
-        title = title or 'Untitled'
+        # Extract fields using actual column keys from SeaTable
+        inventory = row.get('0000', '')  # Inventory number
+        title = row.get('gScu', 'Untitled')  # Title
+        series = row.get('z350', '')  # Collection/Series
+        year = row.get('4UG7', '')  # Date/Year
+        edition = row.get('rXGj', '')  # Current sequence/edition
         
         # Build card HTML
         html += f"""            <div class="artwork-card">
@@ -349,7 +339,7 @@ def main():
         image_filename = get_image_filename(image_url)
         output_path = IMAGES_DIR / image_filename
         
-        print(f"   [{i}/{len(rows)}] {row.get('Name', row.get('Title', 'Untitled'))}")
+        print(f"   [{i}/{len(rows)}] {row.get('gScu', row.get('Title', row.get('Name', 'Untitled')))}")
         download_image(image_url, API_TOKEN, output_path)
         image_count += 1
     
