@@ -334,29 +334,29 @@ def generate_html(rows, image_column, columns):
         if price:
             html += f"""                        <div class="price">${price}</div>\n"""
         
-        # Build email inquiry link
-        email_body = f"I'm interested in the following artwork:\\n\\n"
-        email_body += f"Title: {title}\\n"
+        # Build email inquiry link with proper formatting
+        email_body = "I'm interested in the following artwork:\n\n"
+        email_body += f"Title: {title}\n"
         if inventory:
-            email_body += f"Inventory: {inventory}\\n"
+            email_body += f"Inventory: {inventory}\n"
         if series:
-            email_body += f"Series: {series}\\n"
+            email_body += f"Series: {series}\n"
         if year:
-            email_body += f"Year: {year}\\n"
+            email_body += f"Year: {year}\n"
         if edition:
-            email_body += f"Edition: {edition}\\n"
+            email_body += f"Edition: {edition}\n"
         if image_size:
-            email_body += f'Image Size: {image_size}"\\n'
+            email_body += f'Image Size: {image_size}"\n'
         if paper_size:
-            email_body += f'Paper Size: {paper_size}"\\n'
+            email_body += f'Paper Size: {paper_size}"\n'
         if frame_size:
-            email_body += f'Frame Size: {frame_size}"\\n'
+            email_body += f'Frame Size: {frame_size}"\n'
         if edition_desc:
-            email_body += f"\\nDetails: {edition_desc}\\n"
+            email_body += f"\nDetails: {edition_desc}\n"
         if medium:
-            email_body += f"Medium: {medium}\\n"
+            email_body += f"Medium: {medium}\n"
         if price:
-            email_body += f"Price: ${price}\\n"
+            email_body += f"\nPrice: ${price}\n"
         
         email_subject = f"Inquiry: {title}"
         if inventory:
