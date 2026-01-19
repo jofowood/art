@@ -1,7 +1,7 @@
 {
   "view_name": "Currently Showing",
-  "output_file": "art/currentlyshowing.html",
+  "output_file": "art/currently-showing.html",
   "header_logo": "page-header-assets/logo.png",
-  "header_title": "page-header-assets/currentlyshowing.png",
+  "header_title": "page-header-assets/currently-showing.png",
   "page_title": "Currently Showing - John Woodruff"
 }
