@@ -10,23 +10,40 @@ import requests
 import json
 import hashlib
 import os
+import sys
 from pathlib import Path
 from urllib.parse import urlparse, unquote, quote
 
-# Configuration
+# Configuration - Constants (same for all catalogs)
 API_TOKEN = "15d2c34c1ab2c226a629c1dcb9c9e02cffec1376"
 SERVER_URL = "https://cloud.seatable.io"
 TABLE_NAME = "Works & Exhibits"
-VIEW_NAME = "Produced Works"
 
-# Header images (relative to catalog.html)
-HEADER_LOGO = "page-header-assets/logo.png"
-HEADER_TITLE = "page-header-assets/available-works.png"
+# Images directory (shared across all catalogs)
+IMAGES_DIR = Path("art/images")
 
-# Output paths
-OUTPUT_DIR = Path("art")
-IMAGES_DIR = OUTPUT_DIR / "images"
-HTML_FILE = OUTPUT_DIR / "catalog.html"
+def load_config(config_file):
+    """Load catalog configuration from JSON file"""
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+        
+        # Validate required fields
+        required = ['view_name', 'output_file', 'header_logo', 'header_title', 'page_title']
+        missing = [field for field in required if field not in config]
+        if missing:
+            raise ValueError(f"Missing required config fields: {', '.join(missing)}")
+        
+        return config
+    except FileNotFoundError:
+        print(f"Error: Config file '{config_file}' not found")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in config file: {e}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 def get_base_token(api_token):
@@ -150,7 +167,7 @@ def find_image_column(columns):
     return None
 
 
-def generate_html(rows, image_column, columns, header_logo, header_title):
+def generate_html(rows, image_column, columns, header_logo, header_title, page_title):
     """Generate HTML catalog page matching existing style"""
     
     # Find specific columns by name
@@ -161,7 +178,7 @@ def generate_html(rows, image_column, columns, header_logo, header_title):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artwork Catalog</title>
+    <title>{page_title}</title>
     <style>
         * {{
             margin: 0;
@@ -409,12 +426,31 @@ def generate_html(rows, image_column, columns, header_logo, header_title):
 
 
 def main():
+    # Check for config file argument
+    if len(sys.argv) < 2:
+        print("Usage: python3 generate_catalog.py <config_file.json>")
+        print("\nExample: python3 generate_catalog.py config_available_works.json")
+        sys.exit(1)
+    
+    config_file = sys.argv[1]
+    
+    # Load configuration
+    config = load_config(config_file)
+    view_name = config['view_name']
+    output_file = Path(config['output_file'])
+    header_logo = config['header_logo']
+    header_title = config['header_title']
+    page_title = config['page_title']
+    
     print("SeaTable Static Catalog Generator")
     print("=" * 50)
+    print(f"Config: {config_file}")
+    print(f"View: {view_name}")
+    print(f"Output: {output_file}")
     
     # Create output directories
-    OUTPUT_DIR.mkdir(exist_ok=True)
-    IMAGES_DIR.mkdir(exist_ok=True)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     
     # Get base token
     print("\n1. Authenticating with SeaTable...")
@@ -441,8 +477,8 @@ def main():
     all_columns = table["columns"]
     
     # Get rows
-    print(f"\n3. Loading rows from view: {VIEW_NAME}...")
-    rows = get_rows(base_token, base_uuid, table["name"], VIEW_NAME)
+    print(f"\n3. Loading rows from view: {view_name}...")
+    rows = get_rows(base_token, base_uuid, table["name"], view_name)
     print(f"   ✓ Found {len(rows)} rows")
     
     # Download images
@@ -465,18 +501,16 @@ def main():
     print(f"\n   ✓ Processed {image_count} images")
     
     # Generate HTML
-    print(f"\n5. Generating {HTML_FILE}...")
-    html = generate_html(rows, image_column, all_columns, HEADER_LOGO, HEADER_TITLE)
-    HTML_FILE.write_text(html, encoding="utf-8")
+    print(f"\n5. Generating {output_file}...")
+    html = generate_html(rows, image_column, all_columns, header_logo, header_title, page_title)
+    output_file.write_text(html, encoding="utf-8")
     print(f"   ✓ Catalog generated!")
     
     print(f"\n✓ Complete!")
     print(f"\nNext steps:")
-    print(f"  1. Review the generated catalog: {HTML_FILE}")
+    print(f"  1. Review the generated catalog: {output_file}")
     print(f"  2. Commit to git: git add art/")
     print(f"  3. Push to GitHub: git push")
-    print(f"\nYour catalog will be live at:")
-    print(f"  https://jofowood.github.io/art/catalog.html")
 
 
 if __name__ == "__main__":

@@ -1,99 +1,148 @@
 # SeaTable Static Catalog Generator
 
-Generates a static HTML catalog from your SeaTable "Works & Exhibits" database.
+Generate static HTML catalogs from SeaTable database views with images and metadata.
 
 ## Features
 
-- ✅ Downloads images from SeaTable and stores them locally
-- ✅ Unique filenames prevent overwrites across multiple views
-- ✅ Generates clean, responsive HTML catalog  
-- ✅ Perfect for GitHub Pages
-- ✅ Works with multiple catalog pages sharing the same images
+- Downloads images from SeaTable and stores them locally
+- Generates responsive HTML catalog pages
+- Supports multiple catalogs from different views using config files
+- Images shared across all catalogs (hash-based filenames prevent duplicates)
+- Customizable headers and page titles per catalog
 
-## Quick Start
+## Setup
 
-### 1. Install Dependencies
-
+1. Install dependencies:
 ```bash
-pip install -r requirements.txt
+pip install requests
 ```
 
-### 2. Run the Generator
+2. Create a config file for your catalog (see examples below)
+
+## Usage
+
+### Generate a Catalog
 
 ```bash
-python3 generate_catalog.py
+python3 generate_catalog.py <config_file.json>
 ```
 
-The script is pre-configured with:
-- **Table:** "Works & Exhibits"
-- **View:** "Produced Works"
-- **Output:** `art/catalog.html`
+**Examples:**
+```bash
+# Generate "Available Works" catalog
+python3 generate_catalog.py config_available_works.json
 
-### 3. Deploy to GitHub
+# Generate "Habit Pattern" catalog  
+python3 generate_catalog.py config_habit_pattern.json
+```
+
+### Update All Catalogs
 
 ```bash
-cd art
-git add .
-git commit -m "Update catalog"
+python3 generate_catalog.py config_available_works.json
+python3 generate_catalog.py config_habit_pattern.json
+git add art/
+git commit -m "Update catalogs"
 git push
 ```
 
-Your catalog will be live at: `https://jofowood.github.io/art/catalog.html`
+## Configuration Files
 
-## What It Does
+Each catalog needs a JSON config file with these fields:
 
-1. Connects to your SeaTable base using the configured API token
-2. Pulls data from "Works & Exhibits" table, "Produced Works" view
-3. Downloads images to `art/images/` with unique hash-based filenames
-4. Generates `art/catalog.html` with your artwork
-5. Ready to commit and push!
-
-## Image Filename Strategy
-
-Images are saved with hash-based filenames (e.g., `a1b2c3d4e5f6.jpg`):
-- **Same image = same filename** → won't re-download
-- **Different image = different filename** → no conflicts  
-- Perfect for multiple catalog pages sharing images
-
-## Creating Additional Catalogs
-
-To create catalogs from different views (e.g., "Habit Pattern" series):
-
-1. Copy the script to a new file (e.g., `generate_habit_pattern.py`)
-2. Update these lines:
-   ```python
-   VIEW_NAME = "Habit Pattern View"  # Change to your view name
-   HTML_FILE = OUTPUT_DIR / "habit-pattern.html"  # Different output file
-   ```
-3. Run the new script
-4. Images are automatically shared between catalogs!
-
-## Customization
-
-Open `generate_catalog.py` and modify:
-
-```python
-# Change the view
-VIEW_NAME = "Your View Name"
-
-# Change output filename  
-HTML_FILE = OUTPUT_DIR / "your-catalog.html"
-
-# Change output directory
-OUTPUT_DIR = Path("your-directory")
+```json
+{
+  "view_name": "SeaTable view name",
+  "output_file": "path/to/output.html",
+  "header_logo": "path/to/logo.png",
+  "header_title": "path/to/title-image.png",
+  "page_title": "HTML page title"
+}
 ```
+
+### Example: Available Works
+
+**config_available_works.json:**
+```json
+{
+  "view_name": "Produced Works",
+  "output_file": "art/catalog.html",
+  "header_logo": "page-header-assets/logo.png",
+  "header_title": "page-header-assets/available-works.png",
+  "page_title": "Available Works - John Woodruff Photography"
+}
+```
+
+### Example: Habit Pattern Series
+
+**config_habit_pattern.json:**
+```json
+{
+  "view_name": "Habit Pattern Series",
+  "output_file": "art/habit-pattern.html",
+  "header_logo": "page-header-assets/logo.png",
+  "header_title": "page-header-assets/habit-pattern-title.png",
+  "page_title": "Habit Pattern - John Woodruff Photography"
+}
+```
+
+## Output Structure
+
+```
+art/
+├── catalog.html              # Available Works catalog
+├── habit-pattern.html        # Habit Pattern catalog
+├── page-header-assets/       # Header images
+│   ├── logo.png
+│   ├── available-works.png
+│   └── habit-pattern-title.png
+└── images/                   # Shared images (all catalogs)
+    ├── a1b2c3d4e5f6.jpg
+    ├── b2c3d4e5f6a7.jpg
+    └── ...
+```
+
+## Image Management
+
+- **Hash-based filenames**: Same image = same filename across all catalogs
+- **Shared directory**: All catalogs use `art/images/`
+- **No duplicates**: Images downloaded once, reused everywhere
+- **Clean unused images**: `rm -rf art/images/* && regenerate all catalogs`
+
+## SeaTable Configuration
+
+The script uses these constants (edit in `generate_catalog.py` if needed):
+- **API Token**: Read-only token for SeaTable
+- **Server**: https://cloud.seatable.io
+- **Table**: "Works & Exhibits"
+
+## Workflow
+
+1. **Edit data** in SeaTable view
+2. **Run generator** with appropriate config file
+3. **Commit changes**: `git add art/ && git commit -m "Update catalog" && git push`
+4. **View live**: https://jofowood.github.io/art/[output-file].html
+
+## Embedding in Website
+
+```html
+<iframe src="https://jofowood.github.io/art/catalog.html" 
+        width="100%" height="800" frameborder="0" 
+        style="border: none;">
+</iframe>
+```
+
+## Adding New Catalogs
+
+1. Create new config file (e.g., `config_new_series.json`)
+2. Set the SeaTable view name
+3. Choose output filename
+4. Specify header images
+5. Run: `python3 generate_catalog.py config_new_series.json`
 
 ## Troubleshooting
 
-**"No image column found"**
-- The table needs an Image column type
-
-**Images not downloading**
-- Verify API token has read permissions
-- Check that the base/view is accessible
-
-**Want to regenerate everything?**
-```bash
-rm -rf art/images/*
-python3 generate_catalog.py
-```
+**"Config file not found"**: Check the config file path  
+**"Missing required fields"**: Ensure all 5 required fields are in config  
+**Images not loading**: Run the generator to download images  
+**Authentication errors**: Verify API token in script
