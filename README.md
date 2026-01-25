@@ -32,7 +32,7 @@ python3 generate_catalog.py <config_file.json>
 # Generate "Available Works" catalog
 python3 generate_catalog.py config_produced_works.json
 
-# Generate "Habit Pattern" catalog  
+# Generate "Currently Showing" catalog  
 python3 generate_catalog.py config_currently_showing.json
 ```
 
@@ -75,7 +75,7 @@ Each catalog needs a JSON config file with these fields:
 
 ### Example: Currently Showing
 
-**config_habit_pattern.json:**
+**config_currently_showing.json:**
 ```json
 {
   "view_name": "Currently Showing",
