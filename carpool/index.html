@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School Carpool Timer</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // Lucide icons as inline SVG components
+    const Clock = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    );
+
+    const Car = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M5 17h-2v-6l2-5h9l4 5v6h-2"/>
+        <circle cx="7" cy="17" r="2"/>
+        <circle cx="17" cy="17" r="2"/>
+      </svg>
+    );
+
+    const Snowflake = ({ className }) => (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <line x1="12" y1="2" x2="12" y2="22"/>
+        <path d="M17 5L12 12 7 5"/>
+        <path d="M17 19L12 12 7 19"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M5 7l7 5-7 5"/>
+        <path d="M19 7l-7 5 7 5"/>
+      </svg>
+    );
+
+    function CarpoolTimer() {
+      const [arrivalTime, setArrivalTime] = useState('08:45');
+      const [needsScraping, setNeedsScraping] = useState(true);
+      const [selectedKids, setSelectedKids] = useState({
+        tea: true,
+        anderson: true,
+        sam: true
+      });
+      
+      // Distance matrix (in minutes)
+      const distances = {
+        home: { tea: 5, anderson: 5, sam: 10, school: 20 },
+        tea: { anderson: 5, sam: 10, school: 20 },
+        anderson: { sam: 10, school: 20 },
+        sam: { school: 15 }
+      };
+      
+      const iceScrapingTime = 5;
+      
+      const toggleKid = (kid) => {
+        setSelectedKids(prev => ({ ...prev, [kid]: !prev[kid] }));
+      };
+      
+      const getTravelTime = (from, to) => {
+        if (distances[from] && distances[from][to] !== undefined) {
+          return distances[from][to];
+        }
+        return 0;
+      };
+
+      const calculateTimeline = () => {
+        const [hours, minutes] = arrivalTime.split(':').map(Number);
+        const arrival = new Date();
+        arrival.setHours(hours, minutes, 0);
+
+        const timeline = [];
+        let currentTime = new Date(arrival);
+        
+        // Arrival at school
+        timeline.unshift({
+          label: 'Arrive at School',
+          time: formatTime(currentTime),
+          icon: '🏫',
+          color: 'bg-green-100 border-green-300'
+        });
+
+        // Build route in visiting order (Tėa, Anderson, Sam)
+        const route = [];
+        if (selectedKids.tea) route.push({ name: 'Tėa', location: 'tea' });
+        if (selectedKids.anderson) route.push({ name: 'Anderson', location: 'anderson' });
+        if (selectedKids.sam) route.push({ name: 'Sam', location: 'sam' });
+        
+        // Work backwards from school
+        let prevLocation = 'school';
+        
+        // Go through pickups in reverse order (Sam, Anderson, Tėa)
+        for (let i = route.length - 1; i >= 0; i--) {
+          const kid = route[i];
+          const travelTime = getTravelTime(kid.location, prevLocation);
+          
+          currentTime.setMinutes(currentTime.getMinutes() - travelTime);
+          
+          timeline.unshift({
+            label: `Pick up ${kid.name}`,
+            time: formatTime(currentTime),
+            icon: '👦',
+            color: 'bg-blue-100 border-blue-300'
+          });
+          
+          prevLocation = kid.location;
+        }
+        
+        // Time from home to first pickup (or directly to school if no pickups)
+        const firstStop = route.length > 0 ? route[0].location : 'school';
+        const homeToFirstStop = getTravelTime('home', firstStop);
+        
+        currentTime.setMinutes(currentTime.getMinutes() - homeToFirstStop);
+        
+        timeline.unshift({
+          label: 'Leave House',
+          time: formatTime(currentTime),
+          icon: '🚗',
+          color: 'bg-yellow-100 border-yellow-300'
+        });
+
+        // Ice scraping time (only if needed)
+        if (needsScraping) {
+          currentTime.setMinutes(currentTime.getMinutes() - iceScrapingTime);
+          timeline.unshift({
+            label: 'Start Scraping Ice',
+            time: formatTime(currentTime),
+            icon: '❄️',
+            color: 'bg-cyan-100 border-cyan-300'
+          });
+        }
+
+        return timeline;
+      };
+
+      const formatTime = (date) => {
+        return date.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      };
+
+      const timeline = calculateTimeline();
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+              <div className="flex items-center gap-3 mb-6">
+                <Car className="w-8 h-8 text-indigo-600" />
+                <h1 className="text-3xl font-bold text-gray-800">School Carpool Timer</h1>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Clock className="inline w-4 h-4 mr-1" />
+                  What time do you need to arrive at school?
+                </label>
+                <input
+                  type="time"
+                  value={arrivalTime}
+                  onChange={(e) => setArrivalTime(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none text-lg"
+                />
+              </div>
+
+              <div className="border-t-2 border-gray-200 pt-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Who needs a ride today?
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedKids.tea}
+                      onChange={() => toggleKid('tea')}
+                      className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-lg font-medium">Tėa</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedKids.anderson}
+                      onChange={() => toggleKid('anderson')}
+                      className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-lg font-medium">Anderson</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedKids.sam}
+                      onChange={() => toggleKid('sam')}
+                      className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-lg font-medium">Sam</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="border-t-2 border-gray-200 pt-6 mt-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Other tasks
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 bg-cyan-50 rounded-lg hover:bg-cyan-100 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={needsScraping}
+                      onChange={() => setNeedsScraping(!needsScraping)}
+                      className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Snowflake className="w-5 h-5 text-cyan-600" />
+                      <span className="text-lg font-medium">Scrape ice (5 min)</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Morning Timeline</h2>
+              
+              <div className="space-y-4">
+                {timeline.map((item, index) => (
+                  <div key={index} className="flex items-center gap-4">
+                    <div className="text-3xl">{item.icon}</div>
+                    <div className={`flex-1 p-4 rounded-xl border-2 ${item.color} transition-all hover:scale-102`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-gray-800 text-lg">{item.label}</span>
+                        <span className="text-2xl font-bold text-gray-900">{item.time}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 p-6 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg text-white shadow-lg">
+                <p className="text-lg mb-1">{needsScraping ? 'Start scraping ice at:' : 'Leave house at:'}</p>
+                <p className="text-4xl font-bold">{timeline[0].time}</p>
+                <p className="text-sm mt-2 opacity-90">
+                  Total prep time: {(() => {
+                    const route = [];
+                    if (selectedKids.tea) route.push('tea');
+                    if (selectedKids.anderson) route.push('anderson');
+                    if (selectedKids.sam) route.push('sam');
+                    
+                    let total = needsScraping ? iceScrapingTime : 0;
+                    let current = 'home';
+                    
+                    for (let stop of route) {
+                      total += getTravelTime(current, stop);
+                      current = stop;
+                    }
+                    total += getTravelTime(current, 'school');
+                    
+                    return total;
+                  })()} minutes
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<CarpoolTimer />, document.getElementById('root'));
+  </script>
+</body>
+</html>
