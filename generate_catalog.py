@@ -413,8 +413,9 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
         mailto_link = f"mailto:jofowood@gmail.com?subject={quote(email_subject)}&body={quote(email_body)}"
         
         html += f"""                        <a href="{mailto_link}" class="inquire-btn">Inquire</a>\n"""
-       # Only add Purchase Info button if configured
-    if config.get('include_purchase_button', False):
+        
+        # Only add Purchase Info button if configured
+        if config.get('include_purchase_button', False):
         # Build Google Form purchase info link
         form_base_url = "https://docs.google.com/forms/d/e/1FAIpQLSeexuq8vTsj5KrOr4trdD1vFrIVnS31sMlGT8sQB_Egc3Idag/viewform"
         github_base_url = "https://jofowood.github.io/art/art"
