@@ -423,8 +423,8 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
             image_url_full = f"{github_base_url}/images/{image_filename}"
             
             purchase_link = f"{form_base_url}?entry.370646706={quote(title)}&entry.673557102={quote(image_url_full)}"
-            
-        html += f"""                        <a href="{purchase_link}" class="inquire-btn" target="_blank">Purchase Info</a>\n"""
+
+            html += f"""                        <a href="{purchase_link}" class="inquire-btn" target="_blank">Purchase Info</a>\n"""
 
         html += """                    </div>
                 </div>
