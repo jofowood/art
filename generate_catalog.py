@@ -210,14 +210,17 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
         .header img {{
             max-width: 100%;
             height: auto;
+            display: block;
         }}
         
         .header .logo {{
-            max-width: 400px;
+            max-width: min(100%, 400px);
+            width: 100%;
         }}
         
         .header .title {{
-            max-width: 600px;
+            max-width: min(100%, 600px);
+            width: 100%;
         }}
         
         h1 {{
@@ -231,6 +234,20 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 30px;
+            justify-items: center;
+        }}
+
+        /* Mobile adjustments */
+        @media (max-width: 640px) {{
+            body {{
+                padding: 10px;
+            }}
+            
+            .grid {{
+                grid-template-columns: 1fr;
+                max-width: 400px;
+                margin: 0 auto;
+            }}
         }}
         
         .artwork-card {{
