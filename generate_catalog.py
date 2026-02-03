@@ -205,7 +205,7 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
             flex-direction: column;
             align-items: center;
             gap: 15px;
-            margin-bottom: 40px;
+            margin-bottom: 0px;
         }}
         
         .header img {{
@@ -242,7 +242,8 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
             text-align: center;
             color: #666;
             font-size: 0.85rem;
-            margin-top: 10px;
+            margin-top: 20px;
+            margin-bottom: 40px;
             font-weight: 300;
         }}
 
