@@ -11,6 +11,7 @@ import json
 import hashlib
 import os
 import sys
+import datetime
 from pathlib import Path
 from urllib.parse import urlparse, unquote, quote
 
@@ -237,6 +238,14 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
             justify-items: center;
         }}
 
+        .copyright {{
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            font-weight: 300;
+        }}
+
         /* Mobile adjustments */
         @media (max-width: 640px) {{
             body {{
@@ -341,7 +350,9 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
             <img src="{header_logo}" alt="John Woodruff" class="logo">
             <img src="{header_title}" alt="Available Works" class="title">
         </div>
+        <p class="copyright">All Images © John Woodruff 2020-{datetime.datetime.now().year}</p>
         <div class="grid">
+        
 """
     
     for row in rows:
