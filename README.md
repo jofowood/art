@@ -2,6 +2,8 @@
 
 Generate static HTML catalogs from SeaTable database views with images and metadata.
 
+This also runs automatically every Monday at noon PST.
+
 ## Features
 
 - Downloads images from SeaTable and stores them locally
