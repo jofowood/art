@@ -20,6 +20,20 @@ API_TOKEN = os.environ.get("SEATABLE_API_TOKEN", "15d2c34c1ab2c226a629c1dcb9c9e0
 SERVER_URL = "https://cloud.seatable.io"
 TABLE_NAME = "Works & Exhibits"
 
+# TODO: replace with the real homepage URL -- used for both the site-logo
+# link and the "Main Site" nav item below.
+MAIN_SITE_URL = "/"
+
+# TODO: replace with the real mailing-list signup URL.
+MAILING_LIST_URL = "#"
+
+# Nav links shown on every catalog page, alongside the "Main Site" link.
+# (label, relative path)
+CATALOG_NAV_PAGES = [
+    ("Available Works", "catalog.html"),
+    ("Currently Showing", "showing.html"),
+]
+
 # Images directory (shared across all catalogs, lives at repo root)
 IMAGES_DIR = Path("images")
 
@@ -30,7 +44,7 @@ def load_config(config_file):
             config = json.load(f)
         
         # Validate required fields
-        required = ['view_name', 'output_file', 'header_logo', 'header_title', 'page_title']
+        required = ['view_name', 'output_file', 'page_heading', 'page_title']
         # include_purchase_button is optional, defaults to False
         config['include_purchase_button'] = config.get('include_purchase_button', False)
         missing = [field for field in required if field not in config]
@@ -170,11 +184,18 @@ def find_image_column(columns):
     return None
 
 
-def generate_html(rows, image_column, columns, header_logo, header_title, page_title, config):
+def generate_html(rows, image_column, columns, page_heading, page_title, config):
     """Generate HTML catalog page matching existing style"""
     
     # Find specific columns by name
     column_map = {col['name']: col for col in columns}
+    
+    # Build the shared nav: a link back to the main site, plus a link to
+    # each catalog page (including the current one -- same nav everywhere).
+    nav_links = [f'<a href="{MAIN_SITE_URL}">Main Site</a>']
+    for label, href in CATALOG_NAV_PAGES:
+        nav_links.append(f'<a href="{href}">{label}</a>')
+    nav_links_html = "\n                ".join(nav_links)
     
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -187,32 +208,16 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
     <link rel="stylesheet" href="https://use.typekit.net/fpc1twk.css">
     <link rel="stylesheet" href="https://jofowood.github.io/shared/jofowo-github.css">
     <style>
-        /* Page-specific layout only -- colors, type, and buttons come from
-           the shared stylesheet. This block just handles the catalog grid
-           and the image lockup header, per jofowo-github.css's convention. */
+        /* Page-specific layout only -- colors, type, buttons, and the site
+           header/footer come from the shared stylesheet. This block just
+           handles the catalog grid and artwork card internals. */
 
-        .catalog-header {{
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
+        .wrap > h1 {{
+            text-align: center;
         }}
 
-        .catalog-header img {{
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }}
-
-        .catalog-header .logo {{
-            max-width: min(100%, 400px);
-            width: 100%;
-        }}
-
-        .catalog-header .title {{
-            max-width: min(100%, 600px);
-            width: 100%;
+        .note {{
+            margin-bottom: 30px;
         }}
 
         .catalog-grid {{
@@ -240,7 +245,7 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
 
         .artwork-image {{
             width: 100%;
-            height: 300px;
+            min-height: 300px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -299,11 +304,14 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
 </head>
 <body>
     <div class="wrap">
-        <div class="catalog-header">
-            <img src="{header_logo}" alt="John Woodruff" class="logo">
-            <img src="{header_title}" alt="{page_title}" class="title">
-        </div>
-        <p class="note" style="text-align: center;">All Images &copy; John Woodruff 2020-{datetime.datetime.now().year}</p>
+        <header class="site-header">
+            <a class="site-logo-link" href="{MAIN_SITE_URL}">John Woodruff</a>
+            <nav class="site-nav">
+                {nav_links_html}
+            </nav>
+        </header>
+        <h1>{page_heading}</h1>
+        <p class="note">All Images &copy; John Woodruff 2020-{datetime.datetime.now().year}</p>
         <div class="catalog-grid">
         
 """
@@ -410,7 +418,7 @@ def generate_html(rows, image_column, columns, header_logo, header_title, page_t
     html += f"""        </div>
         <footer class="site-footer">
             <a class="back-to-top" href="#">↑ Back to Top</a>
-            <p class="copyright-line">Copyright &copy; 2020&ndash;{datetime.datetime.now().year} John Woodruff</p>
+            <p class="copyright-line">Copyright &copy; 2020&ndash;{datetime.datetime.now().year} John Woodruff | <a href="{MAILING_LIST_URL}">Mailing List</a></p>
         </footer>
     </div>
 </body>
@@ -432,8 +440,7 @@ def main():
     config = load_config(config_file)
     view_name = config['view_name']
     output_file = Path(config['output_file'])
-    header_logo = config['header_logo']
-    header_title = config['header_title']
+    page_heading = config['page_heading']
     page_title = config['page_title']
     
     print("SeaTable Static Catalog Generator")
@@ -496,7 +503,7 @@ def main():
     
     # Generate HTML
     print(f"\n5. Generating {output_file}...")
-    html = generate_html(rows, image_column, all_columns, header_logo, header_title, page_title, config)
+    html = generate_html(rows, image_column, all_columns, page_heading, page_title, config)
     output_file.write_text(html, encoding="utf-8")
     print(f"   ✓ Catalog generated!")
     

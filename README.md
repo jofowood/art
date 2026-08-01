@@ -8,11 +8,11 @@ This also runs automatically every Monday at noon PST.
 
 - Downloads images from SeaTable and stores them locally
 - Generates responsive HTML catalog pages styled with the shared house
-  stylesheet (colors, type, buttons) plus minimal page-specific CSS for
-  the catalog grid
+  stylesheet (header, footer, colors, type, buttons) plus minimal
+  page-specific CSS for the catalog grid
 - Supports multiple catalogs from different views using config files
 - Images shared across all catalogs (hash-based filenames prevent duplicates)
-- Customizable headers and page titles per catalog
+- Customizable page heading and title per catalog
 
 ## Setup
 
@@ -58,9 +58,8 @@ Each catalog needs a JSON config file with these fields:
 {
   "view_name": "SeaTable view name",
   "output_file": "output.html",
-  "header_logo": "page-header-assets/logo.png",
-  "header_title": "page-header-assets/title-image.png",
-  "page_title": "HTML page title",
+  "page_heading": "On-page H1 text",
+  "page_title": "HTML <title> text",
   "include_purchase_button": TRUE or FALSE
 }
 ```
@@ -72,8 +71,7 @@ Each catalog needs a JSON config file with these fields:
 {
   "view_name": "Available or in Process",
   "output_file": "catalog.html",
-  "header_logo": "page-header-assets/logo.png",
-  "header_title": "page-header-assets/available-works.png",
+  "page_heading": "Available Works",
   "page_title": "Available Works - John Woodruff",
   "include_purchase_button": false
 }
@@ -86,8 +84,7 @@ Each catalog needs a JSON config file with these fields:
 {
   "view_name": "Currently Showing",
   "output_file": "showing.html",
-  "header_logo": "page-header-assets/logo.png",
-  "header_title": "page-header-assets/currently-showing-title.png",
+  "page_heading": "Currently Showing",
   "page_title": "Currently Showing - John Woodruff",
   "include_purchase_button": true
 }
@@ -101,15 +98,14 @@ Everything lives at the repository root (this repo is dedicated to the catalog):
 catalog/                       # repo root
 ├── catalog.html                # Available Works catalog
 ├── showing.html                # Currently Showing catalog
-├── page-header-assets/         # Header images
-│   ├── logo.png
-│   ├── available-works.png
-│   └── currently-showing.png
 └── images/                     # Shared images (all catalogs)
     ├── a1b2c3d4e5f6.jpg
     ├── b2c3d4e5f6a7.jpg
     └── ...
 ```
+
+No local header image assets are needed — the site logo comes from the
+shared stylesheet's header component (see below).
 
 ## Fonts & Shared Styling
 
@@ -126,20 +122,26 @@ This is hardcoded into `generate_catalog.py`'s HTML template — no per-config
 setup needed.
 
 **What the shared stylesheet provides:** base type (Orator via Typekit),
-color variables, the `.wrap` page container, `.btn` / `.btn.primary` button
-styles, and the shared `.site-footer` / `.back-to-top` / `.copyright-line`
-footer pattern. The generator uses all of these instead of duplicating them.
+color variables, the `.wrap` page container, the site header
+(`header.site-header` / `.site-logo-link` — a plain text "John Woodruff"
+logo link, no image file required), `h1` styling for the page heading,
+`.btn` / `.btn.primary` button styles, and the `.site-footer` /
+`.back-to-top` / `.copyright-line` footer pattern. The generator uses all
+of these instead of duplicating them or shipping its own header images.
 
 **What stays local to `generate_catalog.py`'s own `<style>` block:**
-catalog-specific layout only — the responsive grid (`.catalog-grid`), the
-image lockup header (`.catalog-header`), and artwork card internals
-(`.artwork-card`, `.artwork-image`, `.artwork-meta`, etc.), per the shared
-stylesheet's own convention of keeping page-specific layout out of the
-house CSS.
+catalog-specific layout only — the responsive grid (`.catalog-grid`) and
+artwork card internals (`.artwork-card`, `.artwork-image`, `.artwork-meta`,
+etc.), per the shared stylesheet's own convention of keeping page-specific
+layout out of the house CSS.
 
 If the shared stylesheet (`jofowo-github.css`) changes — new button
-variants, color updates, etc. — those propagate automatically to every
-generated page without touching this repo.
+variants, color updates, a different logo link target, etc. — those
+propagate automatically to every generated page without touching this repo.
+
+**Logo link target:** the site logo currently links to `/`. If that
+shouldn't point to the GitHub Pages root, update the `href` on
+`.site-logo-link` inside `generate_catalog.py`'s HTML template.
 
 ## Image Management
 
@@ -176,12 +178,13 @@ The script uses these constants (edit in `generate_catalog.py` if needed):
 1. Create new config file (e.g., `config_new_series.json`)
 2. Set the SeaTable view name
 3. Choose output filename (root-level, e.g., `new-series.html`)
-4. Specify header images
+4. Set `page_heading` and `page_title`
 5. Run: `python3 generate_catalog.py config_new_series.json`
 
 ## Troubleshooting
 
 **"Config file not found"**: Check the config file path
-**"Missing required fields"**: Ensure all 5 required fields are in config
+**"Missing required fields"**: Ensure `view_name`, `output_file`,
+`page_heading`, and `page_title` are all in the config
 **Images not loading**: Run the generator to download images
 **Authentication errors**: Verify API token in script
