@@ -27,8 +27,8 @@ MAILING_LIST_URL = "http://eepurl.com/i9nouY"
 # Nav links shown on every catalog page, alongside the "Main Site" link.
 # (label, relative path)
 CATALOG_NAV_PAGES = [
-    ("Available Works", "catalog.html"),
-    ("Currently Showing", "showing.html"),
+    ("Available", "catalog.html"),
+    ("Showing", "showing.html"),
 ]
 
 # Images directory (shared across all catalogs, lives at repo root)
